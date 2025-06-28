@@ -12,17 +12,18 @@ module.exports = async (req, res) => {
     }
 
     // Pega a URL da API original da query string da nossa requisição
-    const { apiUrl } = req.query;
+    const { url } = req.query;
 
-    if (!apiUrl) {
-        return res.status(400).json({ error: 'O parâmetro apiUrl é obrigatório.' });
+    if (!url) {
+        return res.status(400).json({ error: 'O parâmetro url é obrigatório.' });
     }
 
     try {
-        const apiResponse = await fetch(decodeURIComponent(apiUrl));
+        const apiResponse = await fetch(decodeURIComponent(url));
         const data = await apiResponse.json();
         res.status(200).json(data);
     } catch (error) {
+        console.error('Erro na requisição:', error);
         res.status(500).json({ error: 'Erro ao fazer a requisição para a API externa.', details: error.message });
     }
 };

@@ -123,14 +123,14 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.textContent = 'Gerando...';
 
         try {
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/create_payment?value=${amount}`)}`);
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/create_payment?valor=${amount}`)}`);
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             
             const data = await response.json();
-            if (data.qr_code_base64 && data.pix_copy) {
-                qrCodeImg.src = `data:image/png;base64,${data.qr_code_base64}`;
-                pixCopiaECola.value = data.pix_copy;
-                currentPaymentId = data.payment_id;
+            if (data.qrcode_base64 && data.pixCopiaECola) {
+                qrCodeImg.src = `data:image/png;base64,${data.qrcode_base64}`;
+                pixCopiaECola.value = data.pixCopiaECola;
+                currentPaymentId = data.external_id;
                 paymentInfoBox.classList.remove('hidden');
                 paymentStatus.textContent = '';
             } else {
@@ -196,13 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             
             const data = await response.json();
-            if (data.status === 'CONCLUIDA') {
+            if (data.status_pagamento === 'CONCLUIDA') {
                 paymentStatus.innerHTML = '<strong>Status: PAGAMENTO CONFIRMADO ✓</strong><br>Sua transação foi processada com total privacidade.';
                 paymentStatus.style.color = 'var(--success-color)';
                 const amount = parseFloat(amountInput.value);
                 await addBalance(userId, amount);
             } else {
-                paymentStatus.innerHTML = `<strong>Status: ${data.status}</strong><br>Aguardando pagamento de forma anônima...`;
+                paymentStatus.innerHTML = `<strong>Status: ${data.status_pagamento || 'PENDENTE'}</strong><br>Aguardando pagamento de forma anônima...`;
                 paymentStatus.style.color = 'orange';
             }
         } catch (error) {
