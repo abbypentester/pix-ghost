@@ -69,6 +69,27 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('userId', userId);
     }
     userIdInput.value = userId;
+    balanceUserIdInput.value = userId; // Preencher também o campo de consulta de saldo
+    
+    // Atualizar o userId no localStorage quando o usuário alterar o valor no input
+    userIdInput.addEventListener('change', function() {
+        if (this.value && this.value.trim() !== '') {
+            userId = this.value.trim();
+            localStorage.setItem('userId', userId);
+            balanceUserIdInput.value = userId; // Atualizar também o campo de consulta de saldo
+            console.log('ID da carteira atualizado:', userId);
+        }
+    });
+    
+    // Sincronizar o balanceUserIdInput com o userIdInput
+    balanceUserIdInput.addEventListener('change', function() {
+        if (this.value && this.value.trim() !== '') {
+            userId = this.value.trim();
+            localStorage.setItem('userId', userId);
+            userIdInput.value = userId; // Atualizar também o campo de geração de pagamento
+            console.log('ID da carteira atualizado a partir do campo de consulta:', userId);
+        }
+    });
     
     // Adicionar evento para selecionar o ID do usuário ao clicar
     userIdInput.addEventListener('click', function() {
@@ -192,6 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
         paymentStatus.style.color = 'var(--accent-color)';
 
         try {
+            // Garantir que temos o userId atual
+            const currentUserId = userIdInput.value || userId;
             const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`)}`);
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             
@@ -200,7 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 paymentStatus.innerHTML = '<strong>Status: PAGAMENTO CONFIRMADO ✓</strong><br>Sua transação foi processada com total privacidade.';
                 paymentStatus.style.color = 'var(--success-color)';
                 const amount = parseFloat(amountInput.value);
-                await addBalance(userId, amount);
+                // Usar o userId atual para adicionar o saldo
+                await addBalance(currentUserId, amount);
             } else {
                 paymentStatus.innerHTML = `<strong>Status: ${data.status_pagamento || 'PENDENTE'}</strong><br>Aguardando pagamento de forma anônima...`;
                 paymentStatus.style.color = 'orange';
