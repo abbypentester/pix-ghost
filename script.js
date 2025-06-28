@@ -435,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
-    // --- Lógica para o Menu Mobile ---
+    // --- Mobile Menu Logic ---
     const navToggle = document.getElementById('nav-toggle');
     const navLinks = document.querySelectorAll('.nav-links a');
 
@@ -443,6 +443,38 @@ document.addEventListener('DOMContentLoaded', () => {
         link.addEventListener('click', () => {
             if (window.innerWidth <= 768) {
                 navToggle.checked = false;
+            }
+        });
+    });
+
+    // --- FAQ Accordion Logic ---
+    const faqItems = document.querySelectorAll('.faq-item');
+
+    faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+
+        question.addEventListener('click', () => {
+            const isActive = item.classList.contains('active');
+
+            // Close all other items
+            faqItems.forEach(otherItem => {
+                if (otherItem !== item) {
+                    otherItem.classList.remove('active');
+                    otherItem.querySelector('.faq-answer').style.maxHeight = null;
+                    otherItem.querySelector('.faq-answer').style.padding = '0 2rem';
+                }
+            });
+
+            // Toggle the clicked item
+            if (isActive) {
+                item.classList.remove('active');
+                answer.style.maxHeight = null;
+                answer.style.padding = '0 2rem';
+            } else {
+                item.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+                answer.style.padding = '0 2rem 1.5rem 2rem';
             }
         });
     });
