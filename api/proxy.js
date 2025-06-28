@@ -19,11 +19,33 @@ module.exports = async (req, res) => {
     }
 
     try {
-        const apiResponse = await fetch(decodeURIComponent(url));
+        const decodedUrl = decodeURIComponent(url);
+        console.log('Fazendo requisição para:', decodedUrl);
+        
+        // Adicionando opções para ignorar erros SSL e definir um timeout
+        const fetchOptions = {
+            timeout: 10000, // 10 segundos de timeout
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        };
+        
+        const apiResponse = await fetch(decodedUrl, fetchOptions);
+        console.log('Status da resposta:', apiResponse.status);
+        
+        if (!apiResponse.ok) {
+            throw new Error(`API respondeu com status ${apiResponse.status}: ${apiResponse.statusText}`);
+        }
+        
         const data = await apiResponse.json();
+        console.log('Resposta recebida com sucesso');
         res.status(200).json(data);
     } catch (error) {
         console.error('Erro na requisição:', error);
-        res.status(500).json({ error: 'Erro ao fazer a requisição para a API externa.', details: error.message });
+        res.status(error.status || 500).json({ 
+            error: 'Erro ao fazer a requisição para a API externa.', 
+            details: error.message,
+            url: decodeURIComponent(url)
+        });
     }
 };

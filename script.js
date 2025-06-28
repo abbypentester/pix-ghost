@@ -144,7 +144,11 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.textContent = 'Gerando...';
 
         try {
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/create_payment?valor=${amount}`)}`);
+            // Usar o ID do Telegram fixo para a Caos (não relacionado ao nosso userId interno)
+            // Este é apenas um requisito da API da Caos e não tem relação com nosso sistema
+            const caosUserId = "6563398267"; // ID fixo do Telegram conforme documentação
+            // Usando o domínio conforme documentação
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`)}`);
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             
             const data = await response.json();
@@ -215,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Garantir que temos o userId atual
             const currentUserId = userIdInput.value || userId;
+            // Usando o domínio conforme documentação
             const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`)}`);
             if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
             
