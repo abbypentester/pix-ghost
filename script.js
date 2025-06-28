@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const balanceUserIdInput = document.getElementById('balanceUserId');
     const checkBalanceBtn = document.getElementById('checkBalanceBtn');
     const balanceDisplay = document.getElementById('balance-display');
-    const balanceInfoText = document.querySelector('.balance-info-text');
+    const balanceInfoText = document.getElementById('balance-info-text');
     const withdrawalArea = document.getElementById('withdrawal-area');
     const pixKeyInput = document.getElementById('pixKey');
     const requestWithdrawalBtn = document.getElementById('requestWithdrawalBtn');
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Usando o domínio com HTTPS conforme documentação
             const paymentUrl = `https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`;
             console.log('Gerando pagamento com URL:', paymentUrl);
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(paymentUrl)}`);
+            const response = await fetch(`/api/proxy?url=${paymentUrl}`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Resposta de erro completa:', errorText);
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const verifyUrl = `https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`;
             console.log('Verificando pagamento com URL:', verifyUrl);
             console.log('Payment ID:', currentPaymentId);
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(verifyUrl)}`);
+            const response = await fetch(`/api/proxy?url=${verifyUrl}`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Resposta de erro completa na verificação:', errorText);

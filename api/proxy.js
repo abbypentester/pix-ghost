@@ -11,10 +11,16 @@ export default async (req, res) => {
         return res.status(200).end();
     }
 
-    const { url: encodedUrl } = req.query;
+    const urlParamIndex = req.url.indexOf('?url=');
+
+    if (urlParamIndex === -1) {
+        return res.status(400).json({ error: 'O parâmetro url é obrigatório e deve começar com ?url=.' });
+    }
+
+    const encodedUrl = req.url.substring(urlParamIndex + 5);
 
     if (!encodedUrl) {
-        return res.status(400).json({ error: 'O parâmetro url é obrigatório.' });
+        return res.status(400).json({ error: 'O parâmetro url está vazio.' });
     }
 
     let targetUrl;
