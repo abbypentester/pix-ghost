@@ -1,3 +1,4 @@
+// Forçando um novo build em: ' + new Date().toISOString()
 const https = require('https');
 
 module.exports = (req, res) => {
