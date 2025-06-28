@@ -60,6 +60,7 @@ header .container {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative; /* Para o posicionamento do menu mobile */
 }
 
 .logo {
@@ -75,6 +76,77 @@ nav a {
     margin-left: 2rem;
     font-weight: 600;
     transition: color 0.2s ease-in-out;
+}
+
+.nav-links {
+    display: flex;
+    align-items: center;
+}
+
+.nav-toggle {
+    display: none; /* Esconde o checkbox */
+}
+
+.nav-toggle-label {
+    display: none; /* Esconde o label (ícone do menu) por padrão */
+    cursor: pointer;
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+}
+
+.nav-toggle-label span,
+.nav-toggle-label span::before,
+.nav-toggle-label span::after {
+    display: block;
+    background-color: var(--primary-color);
+    height: 3px;
+    width: 25px;
+    border-radius: 2px;
+    position: relative;
+    transition: all 0.3s ease-in-out;
+}
+
+.nav-toggle-label span::before,
+.nav-toggle-label span::after {
+    content: '';
+    position: absolute;
+}
+
+.nav-toggle-label span::before {
+    top: -8px;
+}
+
+.nav-toggle-label span::after {
+    top: 8px;
+}
+
+.nav-toggle:checked ~ .nav-links {
+    display: flex;
+}
+
+.nav-toggle:checked ~ .nav-toggle-label span {
+    background-color: transparent;
+}
+
+.nav-toggle:checked ~ .nav-toggle-label span::before {
+    transform: rotate(45deg);
+    top: 0;
+}
+
+.nav-toggle:checked ~ .nav-toggle-label span::after {
+    transform: rotate(-45deg);
+    top: 0;
+}
+
+.mobile-only {
+    display: none;
+}
+
+.desktop-only {
+    display: inline-block;
 }
 
 nav a:hover {
@@ -607,21 +679,40 @@ footer p {
 
 /* --- Mobile Friendliness --- */
 @media (max-width: 768px) {
-    header .container {
+    .nav-toggle-label {
+        display: block;
+    }
+
+    .nav-links {
+        display: none;
         flex-direction: column;
-        gap: 1rem;
-    }
-
-    nav {
+        position: absolute;
+        top: 100%;
+        left: 0;
         width: 100%;
-        display: flex;
-        justify-content: center;
-        flex-wrap: wrap;
-        gap: 1rem;
+        background-color: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        padding: 2rem 0;
+        border-top: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
+        align-items: center;
+        gap: 1.5rem;
     }
 
-    nav a {
+    .nav-links a {
         margin-left: 0;
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .desktop-only {
+        display: none;
+    }
+
+    .mobile-only {
+        display: block;
+        width: 80%;
+        text-align: center;
     }
 
     .card, .generator-box {
