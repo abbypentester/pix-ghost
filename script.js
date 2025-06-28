@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Usando o domínio com HTTPS conforme documentação
             const paymentUrl = `https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`;
             console.log('Gerando pagamento com URL:', paymentUrl);
-            const response = await fetch(`/api/proxy?url=${paymentUrl}`);
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(paymentUrl)}`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Resposta de erro completa:', errorText);
@@ -232,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const verifyUrl = `https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`;
             console.log('Verificando pagamento com URL:', verifyUrl);
             console.log('Payment ID:', currentPaymentId);
-            const response = await fetch(`/api/proxy?url=${verifyUrl}`);
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(verifyUrl)}`);
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Resposta de erro completa na verificação:', errorText);
