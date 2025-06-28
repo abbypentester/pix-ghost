@@ -147,9 +147,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Usar o ID do Telegram fixo para a Caos (não relacionado ao nosso userId interno)
             // Este é apenas um requisito da API da Caos e não tem relação com nosso sistema
             const caosUserId = "6563398267"; // ID fixo do Telegram conforme documentação
-            // Usando o domínio conforme documentação
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`)}`);
-            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
+            // Usando o domínio com HTTPS conforme documentação
+            const paymentUrl = `https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`;
+            console.log('Gerando pagamento com URL:', paymentUrl);
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(paymentUrl)}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Resposta de erro completa:', errorText);
+                throw new Error(`Erro na rede: ${response.statusText}. Detalhes: ${errorText.substring(0, 100)}...`);
+            }
             
             const data = await response.json();
             if (data.qrcode_base64 && data.pixCopiaECola) {
@@ -163,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Erro ao gerar pagamento:', error);
+            // Exibir mensagem de erro mais detalhada para o usuário
+            paymentStatus.textContent = `Erro ao gerar pagamento: ${error.message}`;
+            paymentStatus.style.color = 'var(--error-color)';
             alert(`Erro ao gerar pagamento: ${error.message}`);
         } finally {
             generateBtn.disabled = false;
@@ -219,9 +228,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Garantir que temos o userId atual
             const currentUserId = userIdInput.value || userId;
-            // Usando o domínio conforme documentação
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(`https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`)}`);
-            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
+            // Usando o domínio com HTTPS conforme documentação
+            const verifyUrl = `https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`;
+            console.log('Verificando pagamento com URL:', verifyUrl);
+            console.log('Payment ID:', currentPaymentId);
+            const response = await fetch(`/api/proxy?url=${encodeURIComponent(verifyUrl)}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Resposta de erro completa na verificação:', errorText);
+                throw new Error(`Erro na rede: ${response.statusText}. Detalhes: ${errorText.substring(0, 100)}...`);
+            }
             
             const data = await response.json();
             if (data.status_pagamento === 'CONCLUIDA') {
@@ -236,9 +252,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Erro ao verificar pagamento:', error);
-            alert(`Erro ao verificar pagamento: ${error.message}`);
-            paymentStatus.textContent = 'Erro ao verificar.';
+            // Exibir mensagem de erro mais detalhada para o usuário
+            paymentStatus.innerHTML = `<strong>Erro ao verificar pagamento:</strong><br>${error.message}`;
             paymentStatus.style.color = 'var(--error-color)';
+            alert(`Erro ao verificar pagamento: ${error.message}`);
         } finally {
             verifyBtn.disabled = false;
             verifyBtn.textContent = 'Verificar Status';
