@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "node-fetch": "^2.6.1",
+    "@vercel/kv": "^1.0.1",
+    "resend": "^2.0.0"
+  }
+}

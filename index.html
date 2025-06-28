@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gateway de Pagamento PIX Privado</title>
+    <meta name="description" content="Receba pagamentos PIX com total anonimato e privacidade. Sem cadastros, sem identificação, sem rastreamento.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="container">
+            <div class="logo">Gateway<span>PIX</span><small><span class="privacy-badge">Privado</span></small></div>
+            <nav>
+                <a href="#journey">Como Funciona</a>
+                <a href="#generator">Gerar PIX</a>
+                <a href="#balance">Consultar & Sacar</a>
+            </nav>
+            <a href="#generator" class="cta-button">Começar a Receber</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1 class="brutal-title">Receba Pagamentos PIX com <span>Total Anonimato</span>.</h1>
+                <p class="subtitle">Sem cadastros, sem identificação, <span class="highlight">sem rastreamento</span>. Crie cobranças PIX instantaneamente e gerencie seu saldo com total privacidade. Ideal para quem valoriza <span class="highlight">liberdade financeira</span>.</p>
+                <a href="#generator" class="cta-button hero-cta">Gerar meu primeiro PIX</a>
+            </div>
+        </section>
+
+        <section id="journey">
+            <div class="container">
+                <h2 class="section-title">Sua Jornada Anônima em 3 Passos</h2>
+                <p class="section-subtitle">Entenda como é fácil receber pagamentos com total privacidade e discrição.</p>
+                <div class="journey-steps">
+                    <div class="step card">
+                        <div class="step-number">1</div>
+                        <h3>Gere sua Carteira Anônima</h3>
+                        <p>Sua carteira é criada automaticamente <span class="highlight">sem qualquer dado pessoal</span>. Salve seu ID único para acessar seus fundos. Ele é sua chave mestra de privacidade!</p>
+                    </div>
+                    <div class="step card">
+                        <div class="step-number">2</div>
+                        <h3>Crie uma Cobrança Invisível</h3>
+                        <p>Informe o valor e gere um QR Code PIX <span class="highlight">sem qualquer vínculo</span> com seus dados pessoais. Compartilhe com total discrição.</p>
+                    </div>
+                    <div class="step card">
+                        <div class="step-number">3</div>
+                        <h3>Consulte e Saque Discretamente</h3>
+                        <p>Após a confirmação, seu saldo é atualizado. Consulte e solicite o saque para qualquer chave PIX, <span class="highlight">mantendo seu anonimato</span> do início ao fim.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="generator" style="background-color: var(--background-color);">
+            <div class="container">
+                <h2 class="section-title">Gerador de Pagamento PIX Anônimo</h2>
+                <p class="section-subtitle">Preencha o valor abaixo para criar uma nova cobrança PIX totalmente privada e sem rastreamento.</p>
+
+                <div class="generator-box card">
+                    <div class="form-group id-box">
+                        <label for="userId">Sua Chave Mestra (ID da Carteira)</label>
+                        <input type="text" id="userId" readonly title="Clique para selecionar e copiar" class="clickable-input">
+                        <div class="brutal-warning"><strong>⚠️ ATENÇÃO:</strong> Salve esta chave! Sem ela, você não poderá acessar seus fundos. <strong>Não há como recuperar. Não compartilhe com ninguém.</strong></div>
+                        <div class="privacy-warning">Esta é sua chave mestra privada. Ela garante total anonimato nas transações. Guarde-a em local seguro e nunca compartilhe com terceiros.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">Valor da Cobrança (R$)</label>
+                        <input type="number" id="amount" placeholder="Ex: 25.50" step="0.01" min="0.01">
+                        <div id="fee-summary" class="fee-summary hidden"></div>
+                    </div>
+
+                    <button id="generateBtn" class="cta-button" style="width: 100%;">Gerar QR Code</button>
+                </div>
+
+                <div id="payment-info" class="payment-info-box card hidden">
+                    <h3>Escaneie para Pagar</h3>
+                    <img id="qrCodeImg" src="" alt="QR Code PIX">
+                    <textarea id="pixCopiaECola" rows="3" readonly></textarea>
+                    <div class="payment-actions">
+                        <button id="copyPixBtn" class="cta-button copy-pix-btn">📋 Copiar Código PIX</button>
+                        <button id="sharePixBtn" class="cta-button share-btn">Compartilhar</button>
+                    </div>
+                    <div class="status-check">
+                        <p>Após o pagamento, verifique o status abaixo.</p>
+                        <button id="verifyBtn" class="cta-button verify-btn">Verificar Status</button>
+                        <p id="payment-status" class="status-message"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="balance">
+            <div class="container">
+                <h2 class="section-title">Consultar Saldo & Solicitar Saque Anônimo</h2>
+                <p class="section-subtitle">Use sua Chave Mestra para visualizar seu saldo e pedir a retirada dos seus fundos com total privacidade e discrição.</p>
+
+                <div class="generator-box card">
+                    <div class="form-group">
+                        <label for="balanceUserId">Sua Chave Mestra (ID da Carteira)</label>
+                        <input type="text" id="balanceUserId" placeholder="Cole sua chave mestra aqui">
+                    </div>
+                    <button id="checkBalanceBtn" class="cta-button" style="width: 100%;">Consultar Saldo</button>
+
+                    <div id="balance-display" class="hidden">
+                        <p class="balance-info-text">Carregando...</p>
+                        <div id="withdrawal-area" class="hidden">
+                            <div id="fee-explanation" class="fee-summary">
+                                <p>O valor líquido (com taxa de 10% descontada) será transferido para a chave PIX informada. O processamento do saque é manual e pode levar até 24 horas.</p>
+                                <p><strong>Sua privacidade é nossa prioridade.</strong> Nenhum dado pessoal é armazenado além da chave PIX para saque.</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="pixKey">Sua Chave PIX para Recebimento</label>
+                                <input type="text" id="pixKey" placeholder="CPF, CNPJ, E-mail, Telefone ou Chave Aleatória">
+                            </div>
+                            <button id="requestWithdrawalBtn" class="cta-button withdrawal-btn" style="width: 100%;">Solicitar Saque</button>
+                        </div>
+                        <div id="withdrawal-status" class="status-message hidden"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 GatewayPIX Privado. Todos os direitos reservados.</p>
+            <p class="cors-warning">Este é um projeto focado em <span class="highlight">privacidade e anonimato</span>. A funcionalidade de pagamento é real e totalmente discreta.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
