@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const balanceUserIdInput = document.getElementById('balanceUserId');
     const checkBalanceBtn = document.getElementById('checkBalanceBtn');
     const balanceDisplay = document.getElementById('balance-display');
-    const balanceInfoText = document.getElementById('balance-info-text');
+    const balanceInfoText = document.querySelector('.balance-info-text');
     const withdrawalArea = document.getElementById('withdrawal-area');
     const pixKeyInput = document.getElementById('pixKey');
     const requestWithdrawalBtn = document.getElementById('requestWithdrawalBtn');
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
             balanceInfoText.innerHTML = balanceHtml;
             balanceDisplay.classList.remove('hidden');
 
-            if (withdrawableBalance > 0) {
+            if (balance > 0) { // Show withdrawal area if there is any balance to apply fees on
                 withdrawalArea.classList.remove('hidden');
             } else {
                 withdrawalArea.classList.add('hidden');
@@ -434,4 +434,16 @@ document.addEventListener('DOMContentLoaded', () => {
             (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
     }
+
+    // --- Lógica para o Menu Mobile ---
+    const navToggle = document.getElementById('nav-toggle');
+    const navLinks = document.querySelectorAll('.nav-links a');
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                navToggle.checked = false;
+            }
+        });
+    });
 });
