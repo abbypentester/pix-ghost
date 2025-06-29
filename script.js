@@ -1,481 +1,272 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Seletores de Elementos ---
-    const userIdInput = document.getElementById('userId');
-    const amountInput = document.getElementById('amount');
-    const feeSummary = document.getElementById('fee-summary');
-    const generateBtn = document.getElementById('generateBtn');
-    
-    // Adicionar título à página para reforçar privacidade
-    document.title = 'Gateway de Pagamento PIX Privado';
-    
-    const paymentInfoDiv = document.getElementById('payment-info');
-    const qrCodeImg = document.getElementById('qrCodeImg');
-    const pixCopiaECola = document.getElementById('pixCopiaECola');
-    const copyPixBtn = document.getElementById('copyPixBtn');
-    const sharePixBtn = document.getElementById('sharePixBtn');
-    const verifyBtn = document.getElementById('verifyBtn');
-    const paymentStatus = document.getElementById('payment-status');
+    console.log('Inicializando a lousa...');
+    // --- State Management ---
+    const state = {
+        isDrawing: false,
+        currentTool: 'pencil',
+        startX: 0,
+        startY: 0,
+        snapshot: null,
+        history: [],
+        redoHistory: [],
+        selectedIconClass: null,
+        activePanel: null
+    };
 
-    const balanceUserIdInput = document.getElementById('balanceUserId');
-    const checkBalanceBtn = document.getElementById('checkBalanceBtn');
-    const balanceDisplay = document.getElementById('balance-display');
-    const balanceInfoText = document.querySelector('.balance-info-text');
-    const withdrawalArea = document.getElementById('withdrawal-area');
-    const pixKeyInput = document.getElementById('pixKey');
-    const requestWithdrawalBtn = document.getElementById('requestWithdrawalBtn');
-    const withdrawalStatus = document.getElementById('withdrawal-status');
+    // --- DOM Elements ---
+    const dom = {
+        canvas: document.getElementById('whiteboard'),
+        ctx: document.getElementById('whiteboard').getContext('2d'),
+        toolbar: document.getElementById('toolbar'),
+        colorPicker: document.getElementById('color-picker'),
+        lineWidth: document.getElementById('line-width'),
+        panels: document.querySelectorAll('.panel'),
+        iconLibrary: document.getElementById('icon-library'),
+        iconGrid: document.querySelector('#icon-library .icon-grid'),
+        iconSearch: document.getElementById('icon-search'),
+        iconCategories: document.querySelector('.icon-categories'),
+        urlInputPanel: document.getElementById('url-input'),
+        urlValue: document.getElementById('url-value'),
+        insertUrlBtn: document.getElementById('insert-url-btn'),
+        undoBtn: document.getElementById('undo-tool'),
+        redoBtn: document.getElementById('redo-tool')
+    };
 
-    // --- Constantes e Variáveis de Estado ---
-    const WITHDRAWAL_FEE = 0.10; // 10% taxa para saques
-    let currentPaymentId = null;
-    let userId = localStorage.getItem('userId');
-    
-    // Configurar cálculo de taxa em tempo real
-    amountInput.addEventListener('input', updateFeeSummary);
-    
-    function updateFeeSummary() {
-        const amount = parseFloat(amountInput.value);
-        if (!amount || isNaN(amount) || amount <= 0) {
-            feeSummary.classList.add('hidden');
-            return;
+    // --- Canvas Setup ---
+    const setupCanvas = () => {
+        const appContainer = document.getElementById('app-container');
+        dom.canvas.width = appContainer.offsetWidth;
+        dom.canvas.height = appContainer.offsetHeight - dom.toolbar.offsetHeight;
+        saveState(); // Save initial blank state
+    };
+
+    // --- History (Undo/Redo) ---
+    const saveState = () => {
+        state.redoHistory = [];
+        dom.redoBtn.disabled = true;
+        if (state.history.length > 20) state.history.shift();
+        state.history.push(dom.ctx.getImageData(0, 0, dom.canvas.width, dom.canvas.height));
+        dom.undoBtn.disabled = false;
+    };
+
+    const undo = () => {
+        if (state.history.length <= 1) return;
+        state.redoHistory.push(state.history.pop());
+        dom.redoBtn.disabled = false;
+        dom.ctx.putImageData(state.history[state.history.length - 1], 0, 0);
+        if (state.history.length <= 1) dom.undoBtn.disabled = true;
+    };
+
+    const redo = () => {
+        if (state.redoHistory.length === 0) return;
+        const nextState = state.redoHistory.pop();
+        state.history.push(nextState);
+        dom.ctx.putImageData(nextState, 0, 0);
+        dom.undoBtn.disabled = false;
+        if (state.redoHistory.length === 0) dom.redoBtn.disabled = true;
+    };
+
+    // --- Panels (Icon Library, URL Input) ---
+    const togglePanel = (panelId) => {
+        const targetPanel = document.getElementById(panelId);
+        if (state.activePanel && state.activePanel !== targetPanel) {
+            state.activePanel.classList.add('hidden');
         }
-        
-        const fee = amount * WITHDRAWAL_FEE;
-        const netAmount = amount - fee;
-        
-        feeSummary.innerHTML = `
-            <div class="balance-summary">
-                <div class="balance-item">
-                    <span>Valor bruto:</span>
-                    <strong>R$ ${amount.toFixed(2)}</strong>
-                </div>
-                <div class="balance-item">
-                    <span>Taxa (10%):</span>
-                    <strong style="color: var(--error-color);">- R$ ${fee.toFixed(2)}</strong>
-                </div>
-                <div class="balance-item total">
-                    <span>Valor líquido:</span>
-                    <strong style="color: var(--success-color);">R$ ${netAmount.toFixed(2)}</strong>
-                </div>
-            </div>
-            <p class="privacy-note">Transação 100% anônima e privada, sem rastreamento.</p>
-        `;
-        feeSummary.classList.remove('hidden');
-    }
-
-    // --- Inicialização ---
-    if (!userId) {
-        userId = generateUUID();
-        localStorage.setItem('userId', userId);
-    }
-    userIdInput.value = userId;
-    balanceUserIdInput.value = userId; // Preencher também o campo de consulta de saldo
-    
-    // Atualizar o userId no localStorage quando o usuário alterar o valor no input
-    userIdInput.addEventListener('change', function() {
-        if (this.value && this.value.trim() !== '') {
-            userId = this.value.trim();
-            localStorage.setItem('userId', userId);
-            balanceUserIdInput.value = userId; // Atualizar também o campo de consulta de saldo
-            console.log('ID da carteira atualizado:', userId);
+        if (targetPanel) {
+            targetPanel.classList.toggle('hidden');
+            state.activePanel = targetPanel.classList.contains('hidden') ? null : targetPanel;
         }
-    });
-    
-    // Sincronizar o balanceUserIdInput com o userIdInput
-    balanceUserIdInput.addEventListener('change', function() {
-        if (this.value && this.value.trim() !== '') {
-            userId = this.value.trim();
-            localStorage.setItem('userId', userId);
-            userIdInput.value = userId; // Atualizar também o campo de geração de pagamento
-            console.log('ID da carteira atualizado a partir do campo de consulta:', userId);
-        }
-    });
-    
-    // Adicionar evento para selecionar o ID do usuário ao clicar
-    userIdInput.addEventListener('click', function() {
-        this.select();
-        try {
-            // Tenta copiar automaticamente para a área de transferência
-            navigator.clipboard.writeText(this.value)
-                .then(() => {
-                    // Feedback visual temporário
-                    const originalBg = this.style.backgroundColor;
-                    this.style.backgroundColor = '#d1fae5';
-                    setTimeout(() => {
-                        this.style.backgroundColor = originalBg;
-                    }, 500);
-                })
-                .catch(err => {
-                    // Se falhar, pelo menos seleciona o texto para o usuário copiar manualmente
-                    console.log('Clipboard API não disponível, texto selecionado para cópia manual');
-                });
-        } catch (err) {
-            // Apenas seleciona o texto para o usuário copiar manualmente
-            console.log('Erro ao tentar copiar: ' + err);
-        }
-    });
+    };
 
-    // --- GERADOR PIX ---
-    const paymentInfoBox = document.getElementById('payment-info');
-    
-    // Adicionar funcionalidade ao botão de compartilhamento
-    sharePixBtn.addEventListener('click', () => {
-        if (navigator.share) {
-            navigator.share({
-                title: 'Pagamento PIX',
-                text: 'Use este código PIX para fazer o pagamento:',
-                url: window.location.href
-            })
-            .then(() => console.log('Compartilhado com sucesso'))
-            .catch((error) => console.log('Erro ao compartilhar', error));
-        } else {
-            alert('Seu navegador não suporta a função de compartilhamento. Por favor, copie o código manualmente.');
-        }
-    });
+    // --- Tool & Drawing Logic ---
+    const getMousePos = (e) => {
+        const rect = dom.canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
 
-    generateBtn.addEventListener('click', async () => {
-        const amount = amountInput.value;
-        if (!amount || isNaN(amount) || amount <= 0) {
-            alert('Por favor, insira um valor válido.');
-            return;
-        }
+    const startDrawing = (e) => {
+        state.isDrawing = true;
+        const pos = getMousePos(e);
+        state.startX = pos.x;
+        state.startY = pos.y;
+        dom.ctx.beginPath();
+        dom.ctx.lineWidth = dom.lineWidth.value;
+        dom.ctx.strokeStyle = dom.colorPicker.value;
+        dom.ctx.fillStyle = dom.colorPicker.value;
+        state.snapshot = dom.ctx.getImageData(0, 0, dom.canvas.width, dom.canvas.height);
+    };
 
-        generateBtn.disabled = true;
-        generateBtn.textContent = 'Gerando...';
+    const stopDrawing = (e) => {
+        if (!state.isDrawing) return;
+        state.isDrawing = false;
+        const pos = getMousePos(e);
 
-        try {
-            // Usar o ID do Telegram fixo para a Caos (não relacionado ao nosso userId interno)
-            // Este é apenas um requisito da API da Caos e não tem relação com nosso sistema
-            const caosUserId = "6563398267"; // ID fixo do Telegram conforme documentação
-            // Usando o domínio com HTTPS conforme documentação
-            const paymentUrl = `https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`;
-            console.log('Gerando pagamento com URL:', paymentUrl);
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(paymentUrl)}`);
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Resposta de erro completa:', errorText);
-                throw new Error(`Erro na rede: ${response.statusText}. Detalhes: ${errorText.substring(0, 100)}...`);
+        if (state.currentTool === 'text') {
+            const text = prompt('Digite o texto:');
+            if (text) {
+                dom.ctx.font = `${dom.lineWidth.value * 5}px Roboto`;
+                dom.ctx.fillText(text, pos.x, pos.y);
             }
-            
-            const data = await response.json();
-            if (data.qrcode_base64 && data.pixCopiaECola) {
-                qrCodeImg.src = `data:image/png;base64,${data.qrcode_base64}`;
-                pixCopiaECola.value = data.pixCopiaECola;
-                currentPaymentId = data.external_id;
-                paymentInfoBox.classList.remove('hidden');
-                paymentStatus.textContent = '';
-            } else {
-                throw new Error('Resposta da API de pagamento inválida.');
-            }
-        } catch (error) {
-            console.error('Erro ao gerar pagamento:', error);
-            // Exibir mensagem de erro mais detalhada para o usuário
-            paymentStatus.textContent = `Erro ao gerar pagamento: ${error.message}`;
-            paymentStatus.style.color = 'var(--error-color)';
-            alert(`Erro ao gerar pagamento: ${error.message}`);
-        } finally {
-            generateBtn.disabled = false;
-            generateBtn.textContent = 'Gerar QR Code PIX';
+        } else if (state.currentTool === 'icon' && state.selectedIconClass) {
+            drawIcon(state.selectedIconClass, pos.x, pos.y);
+            state.selectedIconClass = null; // Reset after drawing
         }
-    });
+        saveState();
+    };
 
-    copyPixBtn.addEventListener('click', () => {
-        pixCopiaECola.select();
-        try {
-            // Tenta usar a API moderna de clipboard
-            navigator.clipboard.writeText(pixCopiaECola.value)
-                .then(() => {
-                    copyPixBtn.innerHTML = '✓ Copiado!';
-                    copyPixBtn.style.backgroundColor = 'var(--success-color)';
-                    setTimeout(() => {
-                        copyPixBtn.innerHTML = '📋 Copiar Código PIX';
-                        copyPixBtn.style.backgroundColor = 'var(--accent-color)';
-                    }, 2000);
-                })
-                .catch(err => {
-                    // Fallback para o método antigo
-                    document.execCommand('copy');
-                    copyPixBtn.innerHTML = '✓ Copiado!';
-                    copyPixBtn.style.backgroundColor = 'var(--success-color)';
-                    setTimeout(() => {
-                        copyPixBtn.innerHTML = 'Copiar Código PIX';
-                        copyPixBtn.style.backgroundColor = 'var(--accent-color)';
-                    }, 2000);
-                });
-        } catch (err) {
-            // Fallback para navegadores que não suportam a API clipboard
-            document.execCommand('copy');
-            copyPixBtn.innerHTML = '✓ Copiado!';
-            copyPixBtn.style.backgroundColor = 'var(--success-color)';
-            setTimeout(() => {
-                copyPixBtn.innerHTML = '📋 Copiar Código PIX';
-                copyPixBtn.style.backgroundColor = 'var(--accent-color)';
-            }, 2000);
+    const drawing = (e) => {
+        if (!state.isDrawing) return;
+        dom.ctx.putImageData(state.snapshot, 0, 0);
+        const pos = getMousePos(e);
+
+        switch (state.currentTool) {
+            case 'pencil':
+                dom.ctx.lineTo(pos.x, pos.y);
+                dom.ctx.stroke();
+                break;
+            case 'rectangle':
+                dom.ctx.strokeRect(state.startX, state.startY, pos.x - state.startX, pos.y - state.startY);
+                break;
+            case 'circle':
+                const radius = Math.sqrt(Math.pow(pos.x - state.startX, 2) + Math.pow(pos.y - state.startY, 2));
+                dom.ctx.beginPath();
+                dom.ctx.arc(state.startX, state.startY, radius, 0, 2 * Math.PI);
+                dom.ctx.stroke();
+                break;
+            case 'arrow':
+                drawArrow(state.startX, state.startY, pos.x, pos.y);
+                break;
         }
-    });
+    };
 
-    verifyBtn.addEventListener('click', async () => {
-        if (!currentPaymentId) {
-            alert('Nenhum pagamento para verificar.');
-            return;
-        }
+    const drawArrow = (fromx, fromy, tox, toy) => {
+        const headlen = 10;
+        const dx = tox - fromx;
+        const dy = toy - fromy;
+        const angle = Math.atan2(dy, dx);
+        dom.ctx.moveTo(fromx, fromy);
+        dom.ctx.lineTo(tox, toy);
+        dom.ctx.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+        dom.ctx.moveTo(tox, toy);
+        dom.ctx.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+        dom.ctx.stroke();
+    };
 
-        verifyBtn.disabled = true;
-        verifyBtn.textContent = 'Verificando...';
-        paymentStatus.textContent = 'Verificando pagamento de forma anônima e privada...';
-        paymentStatus.style.color = 'var(--accent-color)';
+    const drawIcon = (iconClass, x, y) => {
+        const tempIcon = document.createElement('i');
+        tempIcon.className = iconClass;
+        document.body.appendChild(tempIcon);
+        const style = window.getComputedStyle(tempIcon);
+        const content = style.getPropertyValue('content').replace(/"/g, '');
+        const fontFamily = style.getPropertyValue('font-family');
+        dom.ctx.font = `40px ${fontFamily}`;
+        dom.ctx.fillText(content, x, y);
+        document.body.removeChild(tempIcon);
+    };
 
-        try {
-            // Garantir que temos o userId atual
-            const currentUserId = userIdInput.value || userId;
-            // Usando o domínio com HTTPS conforme documentação
-            const verifyUrl = `https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`;
-            console.log('Verificando pagamento com URL:', verifyUrl);
-            console.log('Payment ID:', currentPaymentId);
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(verifyUrl)}`);
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Resposta de erro completa na verificação:', errorText);
-                throw new Error(`Erro na rede: ${response.statusText}. Detalhes: ${errorText.substring(0, 100)}...`);
-            }
-            
-            const data = await response.json();
-            if (data.status_pagamento === 'CONCLUIDA') {
-                paymentStatus.innerHTML = '<strong>Status: PAGAMENTO CONFIRMADO ✓</strong><br>Sua transação foi processada com total privacidade.';
-                paymentStatus.style.color = 'var(--success-color)';
-                const amount = parseFloat(amountInput.value);
-                // Usar o userId atual para adicionar o saldo
-                await addBalance(currentUserId, amount);
-            } else {
-                paymentStatus.innerHTML = `<strong>Status: ${data.status_pagamento || 'PENDENTE'}</strong><br>Aguardando pagamento de forma anônima...`;
-                paymentStatus.style.color = 'orange';
-            }
-        } catch (error) {
-            console.error('Erro ao verificar pagamento:', error);
-            // Exibir mensagem de erro mais detalhada para o usuário
-            paymentStatus.innerHTML = `<strong>Erro ao verificar pagamento:</strong><br>${error.message}`;
-            paymentStatus.style.color = 'var(--error-color)';
-            alert(`Erro ao verificar pagamento: ${error.message}`);
-        } finally {
-            verifyBtn.disabled = false;
-            verifyBtn.textContent = 'Verificar Status';
-        }
-    });
+    // --- Event Listeners ---
+    const setupEventListeners = () => {
+        window.addEventListener('resize', setupCanvas);
 
-    async function addBalance(userId, amount) {
-        try {
-            // Calcular o valor líquido e a taxa
-            const fee = amount * WITHDRAWAL_FEE;
-            const netAmount = amount - fee;
-            
-            // Adicionar o saldo líquido ao usuário
-            const response = await fetch('/api/add-balance', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId, 
-                    amount: netAmount,
-                    transactionType: 'deposit',
-                    paymentId: currentPaymentId
-                }),
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro ao adicionar saldo');
-            }
-            
-            console.log('Saldo adicionado com sucesso');
-            paymentStatus.innerHTML = '<strong>Pagamento confirmado e saldo adicionado!</strong><br>Seu saldo foi atualizado com total privacidade. Você já pode consultar seu novo saldo de forma anônima.';
-        } catch (error) {
-            console.error('Erro ao adicionar saldo:', error);
-            alert(`Erro ao atualizar saldo: ${error.message}`);
-        }
-    }
+        dom.toolbar.addEventListener('click', (e) => {
+            const button = e.target.closest('button');
+            if (!button) return;
 
-    // --- CONSULTA E SAQUE ---
+            const tool = button.dataset.tool;
+            const action = button.dataset.action;
 
-    checkBalanceBtn.addEventListener('click', async () => {
-        const userIdToQuery = balanceUserIdInput.value;
-        if (!userIdToQuery) {
-            alert('Por favor, insira seu ID da Carteira.');
-            return;
-        }
-
-        checkBalanceBtn.disabled = true;
-        checkBalanceBtn.textContent = 'Consultando...';
-
-        try {
-            // Incluir histórico de transações na consulta
-            const response = await fetch(`/api/get-balance?userId=${userIdToQuery}&includeTransactions=true`);
-            if (!response.ok) throw new Error(`Erro na rede: ${response.statusText}`);
-            
-            const data = await response.json();
-            const balance = data.balance || 0;
-            const fee = WITHDRAWAL_FEE; // 10% de taxa
-            const withdrawableBalance = balance * (1 - fee);
-            const feeAmount = balance * fee;
-            const transactions = data.transactions || [];
-
-            // Construir o HTML para o resumo do saldo
-            let balanceHtml = `
-                <div class="balance-summary">
-                    <div class="balance-item">
-                        <span>Saldo Bruto:</span>
-                        <strong style="color: var(--primary-color);">R$ ${balance.toFixed(2)}</strong>
-                    </div>
-                    <div class="balance-item">
-                        <span>Taxa (10%):</span>
-                        <strong style="color: var(--error-color);">- R$ ${feeAmount.toFixed(2)}</strong>
-                    </div>
-                    <div class="balance-item total">
-                        <span>Saldo para Saque:</span>
-                        <strong style="color: var(--success-color);">R$ ${withdrawableBalance.toFixed(2)}</strong>
-                    </div>
-                </div>
-                <p class="privacy-note">🔒 Suas transações são 100% anônimas. Nenhum dado pessoal é armazenado.</p>
-            `;
-            
-            // Adicionar histórico de transações se houver transações
-            if (transactions.length > 0) {
-                balanceHtml += `
-                    <div class="transactions-history">
-                        <h3>Histórico de Transações</h3>
-                        <div class="transactions-list">
-                `;
-                
-                transactions.forEach(transaction => {
-                    const amount = parseFloat(transaction.amount);
-                    const isDeposit = amount > 0 || transaction.type === 'deposit';
-                    const amountColor = isDeposit ? 'var(--success-color)' : 'var(--error-color)';
-                    const amountPrefix = isDeposit ? '+' : '';
-                    const transactionType = isDeposit ? 'Depósito' : 'Saque';
-                    
-                    balanceHtml += `
-                        <div class="transaction-item">
-                            <div class="transaction-info">
-                                <span class="transaction-type">${transactionType}</span>
-                                <span class="transaction-date">${transaction.formattedDate || 'Data não disponível'}</span>
-                            </div>
-                            <span class="transaction-amount" style="color: ${amountColor}">${amountPrefix}R$ ${Math.abs(amount).toFixed(2)}</span>
-                        </div>
-                    `;
-                });
-                
-                balanceHtml += `
-                        </div>
-                    </div>
-                `;
-            }
-            
-            balanceInfoText.innerHTML = balanceHtml;
-            balanceDisplay.classList.remove('hidden');
-
-            if (balance > 0) { // Show withdrawal area if there is any balance to apply fees on
-                withdrawalArea.classList.remove('hidden');
-            } else {
-                withdrawalArea.classList.add('hidden');
-            }
-            withdrawalStatus.textContent = '';
-
-        } catch (error) {
-            console.error('Erro ao consultar saldo:', error);
-            alert(`Erro ao consultar saldo: ${error.message}`);
-            balanceInfoText.textContent = 'Erro ao consultar saldo.';
-        } finally {
-            checkBalanceBtn.disabled = false;
-            checkBalanceBtn.textContent = 'Consultar Saldo';
-        }
-    });
-
-    requestWithdrawalBtn.addEventListener('click', async () => {
-        const pixKey = pixKeyInput.value;
-        const userIdToWithdraw = balanceUserIdInput.value;
-
-        if (!pixKey) {
-            alert('Por favor, insira sua chave PIX para o saque.');
-            return;
-        }
-
-        requestWithdrawalBtn.disabled = true;
-        requestWithdrawalBtn.textContent = 'Processando...';
-
-        try {
-            const response = await fetch('/api/request-withdrawal', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: userIdToWithdraw, pixKey }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Erro ao solicitar saque');
+            if (tool) {
+                state.currentTool = tool;
+                document.querySelectorAll('#toolbar button[data-tool]').forEach(b => b.classList.remove('active'));
+                button.classList.add('active');
+                if (state.activePanel) state.activePanel.classList.add('hidden');
+                state.activePanel = null;
             }
 
-            const result = await response.json();
-            withdrawalStatus.innerHTML = `<strong>${result.message}</strong><br>Sua solicitação foi registrada com total privacidade. Você receberá o valor em até 24 horas de forma discreta.`;
-            withdrawalStatus.style.color = 'var(--success-color)';
-            withdrawalStatus.classList.remove('hidden');
-            withdrawalArea.classList.add('hidden'); // Oculta a área após a solicitação
-
-        } catch (error) {
-            console.error('Erro na solicitação de saque:', error);
-            withdrawalStatus.textContent = `Erro: ${error.message}`;
-            withdrawalStatus.style.color = 'var(--error-color)';
-        } finally {
-            requestWithdrawalBtn.disabled = false;
-            requestWithdrawalBtn.textContent = 'Solicitar Saque';
-        }
-    });
-
-    function generateUUID() {
-        // Implementação mais robusta do UUID v4
-        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-        );
-    }
-
-    // --- Mobile Menu Logic ---
-    const navToggle = document.getElementById('nav-toggle');
-    const navLinks = document.querySelectorAll('.nav-links a');
-
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
-                navToggle.checked = false;
-            }
-        });
-    });
-
-    // --- FAQ Accordion Logic ---
-    const faqItems = document.querySelectorAll('.faq-item');
-
-    faqItems.forEach(item => {
-        const question = item.querySelector('.faq-question');
-        const answer = item.querySelector('.faq-answer');
-
-        question.addEventListener('click', () => {
-            const isActive = item.classList.contains('active');
-
-            // Close all other items
-            faqItems.forEach(otherItem => {
-                if (otherItem !== item) {
-                    otherItem.classList.remove('active');
-                    otherItem.querySelector('.faq-answer').style.maxHeight = null;
-                    otherItem.querySelector('.faq-answer').style.padding = '0 2rem';
+            if (action) {
+                switch (action) {
+                    case 'clear':
+                        if (confirm('Tem certeza que deseja limpar tudo?')) {
+                            dom.ctx.clearRect(0, 0, dom.canvas.width, dom.canvas.height);
+                            saveState();
+                        }
+                        break;
+                    case 'undo': undo(); break;
+                    case 'redo': redo(); break;
+                    case 'toggle-icons': togglePanel('icon-library'); break;
+                    case 'toggle-url': togglePanel('url-input'); break;
+                    case 'screenshot': takeScreenshot(); break;
                 }
-            });
-
-            // Toggle the clicked item
-            if (isActive) {
-                item.classList.remove('active');
-                answer.style.maxHeight = null;
-                answer.style.padding = '0 2rem';
-            } else {
-                item.classList.add('active');
-                answer.style.maxHeight = answer.scrollHeight + 'px';
-                answer.style.padding = '0 2rem 1.5rem 2rem';
             }
         });
-    });
+
+        dom.canvas.addEventListener('mousedown', startDrawing);
+        dom.canvas.addEventListener('mouseup', stopDrawing);
+        dom.canvas.addEventListener('mousemove', drawing);
+        dom.canvas.addEventListener('mouseleave', () => { state.isDrawing = false; });
+
+        dom.iconGrid.addEventListener('click', (e) => {
+            if (e.target.tagName === 'I') {
+                state.selectedIconClass = e.target.className;
+                state.currentTool = 'icon';
+                togglePanel('icon-library');
+                alert('Ícone selecionado! Clique na lousa para posicioná-lo.');
+            }
+        });
+
+        dom.insertUrlBtn.addEventListener('click', () => {
+            const url = dom.urlValue.value;
+            if (url) {
+                dom.ctx.font = '16px Roboto';
+                dom.ctx.fillStyle = '#0000EE';
+                dom.ctx.fillText(url, 100, 100);
+                saveState();
+                togglePanel('url-input');
+                dom.urlValue.value = '';
+            }
+        });
+
+        document.querySelectorAll('.close-panel').forEach(btn => {
+            btn.addEventListener('click', () => btn.closest('.panel').classList.add('hidden'));
+        });
+
+        // Icon filtering
+        dom.iconSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            dom.iconGrid.querySelectorAll('i').forEach(icon => {
+                const matches = icon.className.toLowerCase().includes(searchTerm);
+                icon.style.display = matches ? '' : 'none';
+            });
+        });
+
+        dom.iconCategories.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const category = e.target.dataset.category;
+                dom.iconCategories.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                dom.iconGrid.querySelectorAll('i').forEach(icon => {
+                    const matches = category === 'all' || icon.dataset.category === category;
+                    icon.style.display = matches ? '' : 'none';
+                });
+            }
+        });
+    };
+
+    const takeScreenshot = () => {
+        const link = document.createElement('a');
+        link.download = 'lousa-funil.png';
+        link.href = dom.canvas.toDataURL('image/png');
+        link.click();
+    };
+
+    // --- Initialization ---
+    const init = () => {
+        setupCanvas();
+        setupEventListeners();
+        document.querySelector('button[data-tool="pencil"]').classList.add('active');
+        dom.undoBtn.disabled = true;
+        dom.redoBtn.disabled = true;
+    };
+
+    init();
 });
