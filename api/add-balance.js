@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from '../utils/kv-fallback.js';
 
 // Função para gerar um ID único para a transação
 function generateTransactionId() {
@@ -33,8 +33,10 @@ export default async function handler(request, response) {
     // Adicionar a transação à lista de transações do usuário
     await kv.lpush(`user:${userId}:transactions`, transactionId);
     
-    // HINCRBY atomically increments the value of a hash field by the given number.
-    const newBalance = await kv.hincrby(`user:${userId}`, 'balance', amount);
+    // Incrementar o saldo do usuário
+    const currentBalance = parseFloat(await kv.hget(`user:${userId}`, 'balance') || 0);
+    const newBalance = currentBalance + parseFloat(amount);
+    await kv.hset(`user:${userId}`, 'balance', newBalance);
     
     return response.status(200).json({ 
       success: true, 

@@ -157,13 +157,17 @@ document.addEventListener('DOMContentLoaded', () => {
         generateBtn.textContent = 'Gerando...';
 
         try {
-            // Usar o ID do Telegram fixo para a Caos (não relacionado ao nosso userId interno)
-            // Este é apenas um requisito da API da Caos e não tem relação com nosso sistema
-            const caosUserId = "6563398267"; // ID fixo do Telegram conforme documentação
-            // Usando o domínio com HTTPS conforme documentação
-            const paymentUrl = `https://caospayment.shop/create_payment?user_id=${caosUserId}&valor=${amount}`;
-            console.log('Gerando pagamento com URL:', paymentUrl);
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(paymentUrl)}`);
+            // Fazer requisição para gerar PIX usando EFI
+            const response = await fetch('/api/generate-pix-efi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amount: amount,
+                    description: `Depósito PIX Ghost - Usuário: ${userId}`
+                })
+            });
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Resposta de erro completa:', errorText);
@@ -172,9 +176,14 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const data = await response.json();
             if (data.qrcode_base64 && data.pixCopiaECola) {
-                qrCodeImg.src = `data:image/png;base64,${data.qrcode_base64}`;
+                // Check if qrcode_base64 already contains the data URL prefix
+                if (data.qrcode_base64.startsWith('data:image/png;base64,')) {
+                    qrCodeImg.src = data.qrcode_base64;
+                } else {
+                    qrCodeImg.src = `data:image/png;base64,${data.qrcode_base64}`;
+                }
                 pixCopiaECola.value = data.pixCopiaECola;
-                currentPaymentId = data.external_id;
+                currentPaymentId = data.txid;
                 paymentInfoBox.classList.remove('hidden');
                 paymentStatus.textContent = 'Aguardando pagamento. Clique em "Verificar Status" após pagar.';
                 paymentStatus.style.color = 'var(--accent-color)';
@@ -243,11 +252,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Garantir que temos o userId atual
             const currentUserId = userIdInput.value || userId;
-            // Usando o domínio com HTTPS conforme documentação
-            const verifyUrl = `https://caospayment.shop/verify_payment?payment_id=${currentPaymentId}`;
-            console.log('Verificando pagamento com URL:', verifyUrl);
-            console.log('Payment ID:', currentPaymentId);
-            const response = await fetch(`/api/proxy?url=${encodeURIComponent(verifyUrl)}`);
+            // Verificar pagamento usando EFI
+            const response = await fetch('/api/verify-pix-efi', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    txid: currentPaymentId
+                })
+            });
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error('Resposta de erro completa na verificação:', errorText);
@@ -255,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const data = await response.json();
-            if (data.status_pagamento === 'CONCLUIDA') {
+            if (data.paid === true || data.status === 'CONCLUIDA') {
                 paymentStatus.innerHTML = '<strong>Status: PAGAMENTO CONFIRMADO ✓</strong><br>Adicionando saldo à sua carteira...';
                 paymentStatus.style.color = 'var(--success-color)';
                 
@@ -266,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 await addBalance(currentUserId, confirmedAmount, currentPaymentId);
 
             } else {
-                paymentStatus.innerHTML = `<strong>Status: ${data.status_pagamento || 'PENDENTE'}</strong><br>Aguardando pagamento de forma anônima...`;
+                paymentStatus.innerHTML = `<strong>Status: ${data.status || 'PENDENTE'}</strong><br>Aguardando pagamento de forma anônima...`;
                 paymentStatus.style.color = 'orange';
             }
         } catch (error) {
@@ -445,10 +459,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function generateUUID() {
-        // Implementação mais robusta do UUID v4
-        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+        // Implementação mais robusta do UUID v4 com timestamp para garantir unicidade
+        const timestamp = Date.now().toString(36);
+        const randomPart = ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
             (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
         );
+        // Combinar timestamp com UUID para garantir unicidade absoluta
+        return `${timestamp}-${randomPart}`;
     }
 
     // --- Mobile Menu Logic ---

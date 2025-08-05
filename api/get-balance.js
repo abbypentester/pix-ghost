@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { kv } from '../utils/kv-fallback.js';
 
 export default async function handler(request, response) {
   if (request.method !== 'GET') {

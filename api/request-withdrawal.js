@@ -1,7 +1,11 @@
-import { kv } from '@vercel/kv';
+import { kv } from '../utils/kv-fallback.js';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Inicializar Resend apenas se a chave estiver configurada
+let resend = null;
+if (process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('placeholder')) {
+    resend = new Resend(process.env.RESEND_API_KEY);
+}
 
 // Função para gerar um ID único para a transação
 function generateTransactionId() {
@@ -37,22 +41,30 @@ export default async function handler(request, response) {
         // Gerar um ID único para a transação
         const transactionId = generateTransactionId();
         
-        // Enviar e-mail de notificação para você
-        await resend.emails.send({
-            from: 'onboarding@resend.dev', // Use um domínio verificado no Resend
-            to: process.env.ADMIN_EMAIL || 'seu-email@exemplo.com', // Usar variável de ambiente para o email
-            subject: 'Nova Solicitação de Saque',
-            html: `
-                <h1>Nova Solicitação de Saque</h1>
-                <p><strong>ID da Transação:</strong> ${transactionId}</p>
-                <p><strong>ID do Usuário:</strong> ${userId}</p>
-                <p><strong>Chave PIX:</strong> ${pixKey}</p>
-                <p><strong>Saldo Bruto no Momento da Solicitação:</strong> R$ ${balanceNum.toFixed(2)}</p>
-                <p><strong>Taxa (10%):</strong> R$ ${feeAmount.toFixed(2)}</p>
-                <p><strong>Valor a ser Enviado (Líquido):</strong> R$ ${withdrawableBalance.toFixed(2)}</p>
-                <p>Por favor, processe o saque manualmente.</p>
-            `,
-        });
+        // Enviar e-mail de notificação se o Resend estiver configurado
+        if (resend) {
+            try {
+                await resend.emails.send({
+                    from: 'onboarding@resend.dev', // Use um domínio verificado no Resend
+                    to: process.env.ADMIN_EMAIL || 'seu-email@exemplo.com',
+                    subject: 'Nova Solicitação de Saque',
+                    html: `
+                        <h1>Nova Solicitação de Saque</h1>
+                        <p><strong>ID da Transação:</strong> ${transactionId}</p>
+                        <p><strong>ID do Usuário:</strong> ${userId}</p>
+                        <p><strong>Chave PIX:</strong> ${pixKey}</p>
+                        <p><strong>Saldo Bruto no Momento da Solicitação:</strong> R$ ${balanceNum.toFixed(2)}</p>
+                        <p><strong>Taxa (10%):</strong> R$ ${feeAmount.toFixed(2)}</p>
+                        <p><strong>Valor a ser Enviado (Líquido):</strong> R$ ${withdrawableBalance.toFixed(2)}</p>
+                        <p>Por favor, processe o saque manualmente.</p>
+                    `,
+                });
+            } catch (emailError) {
+                console.log('Aviso: Não foi possível enviar e-mail de notificação:', emailError.message);
+            }
+        } else {
+            console.log('Aviso: RESEND_API_KEY não configurado. E-mail de notificação não enviado.');
+        }
 
         // Registrar a transação no banco de dados
         await kv.hset(`transaction:${transactionId}`, {
