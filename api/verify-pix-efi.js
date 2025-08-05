@@ -3,11 +3,23 @@ import fs from 'fs';
 import path from 'path';
 
 // Configuração da EFI
+const certificatePath = path.resolve(process.env.EFI_CERTIFICATE_PATH || './certificado-completo-efi.pem');
+const certificateContent = fs.readFileSync(certificatePath, 'utf8');
+
+// Extrair certificado e chave privada do arquivo PEM
+const certMatch = certificateContent.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/);
+const keyMatch = certificateContent.match(/-----BEGIN PRIVATE KEY-----[\s\S]*?-----END PRIVATE KEY-----/);
+
+if (!certMatch || !keyMatch) {
+    throw new Error('Não foi possível extrair certificado ou chave privada do arquivo PEM');
+}
+
 const efiConfig = {
     sandbox: false, // Produção
     client_id: process.env.EFI_CLIENT_ID || 'Client_Id_8897337f5626755b4e202c13412fe2629cdf8852',
     client_secret: process.env.EFI_CLIENT_SECRET || 'Client_Secret_9352ff9fddccae8e7114502c23d1fca669a7a747',
-    certificate: process.env.EFI_CERTIFICATE_PATH || './certificado-completo-efi.pem',
+    certificate: certMatch[0],
+    pemKey: keyMatch[0],
     cert_base64: false
 };
 
@@ -52,9 +64,14 @@ export default async function handler(req, res) {
 
         const efipay = new EfiPay(configWithCertPath);
         
-        console.log('Verificando status da cobrança PIX:', transactionId);
-
+        console.log('=== DEBUG VERIFICAÇÃO PIX ===');
+        console.log('TXID recebido na requisição:', transactionId);
+        console.log('Comprimento do TXID:', transactionId.length);
+        console.log('TXID é alfanumérico:', /^[a-zA-Z0-9]+$/.test(transactionId));
+        console.log('TXID está no formato correto (26-35 chars):', /^[a-zA-Z0-9]{26,35}$/.test(transactionId));
+        
         // Consultar cobrança PIX
+        console.log('Consultando cobrança na EFI com TXID:', transactionId);
         const response = await efipay.pixDetailCharge(
             { txid: transactionId }
         );

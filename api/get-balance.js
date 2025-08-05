@@ -14,7 +14,7 @@ export default async function handler(request, response) {
   try {
     // HGET returns the value associated with a field in the hash stored at a key.
     const balance = await kv.hget(`user:${userId}`, 'balance');
-    const finalBalance = balance || 0;
+    const finalBalance = balance ? parseFloat(balance) : 0;
     
     // Resposta básica com o saldo
     const responseData = { balance: finalBalance };

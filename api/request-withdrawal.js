@@ -81,6 +81,18 @@ export default async function handler(request, response) {
         // Adicionar a transação à lista de transações do usuário
         await kv.lpush(`user:${userId}:transactions`, transactionId);
         
+        // Registrar na planilha de saques pendentes para aprovação manual
+        if (kv.addWithdrawalRequest) {
+            await kv.addWithdrawalRequest(transactionId, {
+                userId,
+                pixKey,
+                amount: balanceNum,
+                netAmount: withdrawableBalance,
+                fee: feeAmount,
+                timestamp: Date.now()
+            });
+        }
+        
         // Debitar o saldo do usuário automaticamente
         await kv.hincrby(`user:${userId}`, 'balance', -balanceNum);
         

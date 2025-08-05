@@ -184,6 +184,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 pixCopiaECola.value = data.pixCopiaECola;
                 currentPaymentId = data.txid;
+                
+                // Debug do TXID recebido
+                console.log('=== DEBUG FRONTEND - TXID RECEBIDO ===');
+                console.log('TXID recebido da API:', data.txid);
+                console.log('Comprimento:', data.txid.length);
+                console.log('currentPaymentId definido como:', currentPaymentId);
+                
                 paymentInfoBox.classList.remove('hidden');
                 paymentStatus.textContent = 'Aguardando pagamento. Clique em "Verificar Status" após pagar.';
                 paymentStatus.style.color = 'var(--accent-color)';
@@ -252,6 +259,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Garantir que temos o userId atual
             const currentUserId = userIdInput.value || userId;
+            
+            // Debug do TXID antes de enviar
+            console.log('=== DEBUG FRONTEND - VERIFICAÇÃO ===');
+            console.log('TXID a ser enviado:', currentPaymentId);
+            console.log('Comprimento:', currentPaymentId ? currentPaymentId.length : 'null');
+            
             // Verificar pagamento usando EFI
             const response = await fetch('/api/verify-pix-efi', {
                 method: 'POST',

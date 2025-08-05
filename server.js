@@ -7,7 +7,22 @@ import dotenv from 'dotenv';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: '.env.local' });
+// Carregar variáveis de ambiente
+// Em produção (Vercel), as variáveis vêm do painel
+// Em desenvolvimento local, sempre carregar .env.local
+if (!process.env.VERCEL) {
+  dotenv.config({ path: '.env.local' });
+}
+
+// Verificar se estamos em produção e mostrar status das variáveis
+if (process.env.NODE_ENV === 'production') {
+  console.log('🌐 Executando em PRODUÇÃO');
+  console.log('📋 Status das variáveis de ambiente:');
+  console.log('   EFI_CLIENT_ID:', process.env.EFI_CLIENT_ID ? '✅ Configurada' : '❌ Não configurada');
+  console.log('   EFI_CLIENT_SECRET:', process.env.EFI_CLIENT_SECRET ? '✅ Configurada' : '❌ Não configurada');
+  console.log('   EFI_PIX_KEY:', process.env.EFI_PIX_KEY ? '✅ Configurada' : '❌ Não configurada');
+  console.log('   EFI_CERTIFICATE_PATH:', process.env.EFI_CERTIFICATE_PATH ? '✅ Configurada' : '❌ Não configurada');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
